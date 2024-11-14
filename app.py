@@ -32,23 +32,30 @@ confidence_threshold = st.sidebar.slider("Confidence Level Threshold:", 0.0, 1.0
 
 uploaded_file = st.file_uploader("Upload a Video File (MP4)", type=["mp4"])
 
+
+
+
 if uploaded_file is not None:
     temp_video_path = f"temp_video.mp4"
     with open(temp_video_path, 'wb') as f:
         f.write(uploaded_file.read())
 
     cap = cv2.VideoCapture(temp_video_path)  # Use uploaded video file
-
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     # Load mask and graphics
     mask = cv2.imread("mask.png")  # Mask to filter the region of interest
     tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
 
-    limits = [400, 297, 673, 297]  # Define counting line
-    totalCount = []
+    
 
     # Streamlit image holder for frames
     frame_window = st.image([])
 
+    limits = [int(frame_width * 0.3), int(frame_height * 0.6), int(frame_width * 0.8), int(frame_height * 0.6)]
+    totalCount = []
+    # Resize the mask to match the video frame dimensions
+    mask = cv2.resize(mask, (frame_width, frame_height))
     # Process each frame and display it
     while cap.isOpened():
         ret, img = cap.read()
@@ -112,3 +119,4 @@ if uploaded_file is not None:
     cap.release()
 else:
     st.warning("Please upload a video file to start processing.")
+

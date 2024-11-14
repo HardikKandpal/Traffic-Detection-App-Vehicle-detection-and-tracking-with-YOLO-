@@ -5,7 +5,7 @@ import cvzone
 import math
 from sort import *
  
-cap = cv2.VideoCapture("cars.mp4")  # For Video
+cap = cv2.VideoCapture("WhatsApp Video 2024-11-14 at 11.45.21_27d5b0d3.mp4")  # For Video
  
 model = YOLO("yolov8l.pt")
  
@@ -28,9 +28,24 @@ tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
  
 limits = [400, 297, 673, 297]
 totalCount = []
+# Define the dimensions of the video frames
+frame_width = 848
+frame_height = 478
+
+# Resize the mask to match the video frame dimensions
+mask = cv2.resize(mask, (frame_width, frame_height))
+
  
 while True:
     success, img = cap.read()
+    ret, img = cap.read()  # Read a frame from the video
+    if not ret:
+        break
+
+    # Now perform bitwise operation
+    imgRegion = cv2.bitwise_and(img, mask)
+
+
     imgRegion = cv2.bitwise_and(img, mask)
  
     imgGraphics = cv2.imread("graphics.png", cv2.IMREAD_UNCHANGED)
@@ -83,3 +98,5 @@ while True:
  
     cv2.imshow("Image", img)
     cv2.waitKey(1)
+    print(f"Image shape: {img.shape}")
+    print(f"Mask shape: {mask.shape}")
