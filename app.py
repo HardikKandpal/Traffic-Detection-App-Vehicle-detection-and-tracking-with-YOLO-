@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import cv2
 import cvzone
 import math
@@ -51,8 +52,39 @@ if uploaded_file is not None:
 
     # Streamlit image holder for frames
     frame_window = st.image([])
+    counter_text= st.empty()
+    log_text= st.empty()
+    table_text = st.empty()
 
-    limits = [int(frame_width * 0.3), int(frame_height * 0.6), int(frame_width * 0.8), int(frame_height * 0.6)]
+    vehicle_counts = {
+    "car": 0,
+    "truck": 0,
+    "bus": 0,
+    "motorbike": 0,
+    "person": 0
+    }
+
+    
+    x1 = st.sidebar.slider("Line Start X", 0, frame_width, int(frame_width * 0.3))
+    y1 = st.sidebar.slider("Line Start Y", 0, frame_height, int(frame_height * 0.6))
+    x2 = st.sidebar.slider("Line End X", 0, frame_width, int(frame_width * 0.8))
+    y2 = st.sidebar.slider("Line End Y", 0, frame_height, int(frame_height * 0.6))
+
+    text_x1 = st.sidebar.text_input("Start X Position (Text Input)", value=str(x1))
+    text_y1 = st.sidebar.text_input("Start Y Position (Text Input)", value=str(y1))
+    text_x2 = st.sidebar.text_input("End X Position (Text Input)", value=str(x2))
+    text_y2 = st.sidebar.text_input("End Y Position (Text Input)", value=str(y2))
+
+    try:
+        input_x1 = int(text_x1) if 0 <= int(text_x1) <= frame_width else x1
+        input_y1 = int(text_y1) if 0 <= int(text_y1) <= frame_height else y1
+        input_x2 = int(text_x2) if 0 <= int(text_x2) <= frame_width else x2
+        input_y2 = int(text_y2) if 0 <= int(text_y2) <= frame_height else y2
+    except ValueError:
+    # Fall back to slider values if input is invalid
+        input_x1, input_y1, input_x2, input_y2 = x1, y1, x2, y2
+    limits = [input_x1, input_y1, input_x2, input_y2]
+    #limits = [int(frame_width * 0.3), int(frame_height * 0.6), int(frame_width * 0.8), int(frame_height * 0.6)]
     totalCount = []
     # Resize the mask to match the video frame dimensions
     mask = cv2.resize(mask, (frame_width, frame_height))
@@ -61,12 +93,12 @@ if uploaded_file is not None:
         ret, img = cap.read()
         if not ret:
             break
-
+        img = cv2.GaussianBlur(img, (5, 5), 0)
         imgRegion = cv2.bitwise_and(img, mask)
         results = model(imgRegion, stream=True)
 
-        imgGraphics = cv2.imread("graphics.png", cv2.IMREAD_UNCHANGED)
-        img = cvzone.overlayPNG(img, imgGraphics, (0, 0))
+        #imgGraphics = cv2.imread("graphics.png", cv2.IMREAD_UNCHANGED)
+        #img = cvzone.overlayPNG(img, imgGraphics, (0, 0))
         
         detections = np.empty((0, 5))
 
@@ -84,7 +116,10 @@ if uploaded_file is not None:
                 currentClass = classNames[cls]
 
                 # Filter vehicles based on confidence threshold set by user
-                if currentClass in ["car", "truck", "bus", "motorbike"] and conf > confidence_threshold:
+                #if currentClass in ["car", "truck", "bus", "motorbike"] and conf > confidence_threshold:
+                    #currentArray = np.array([x1, y1, x2, y2, conf])
+                    #detections = np.vstack((detections, currentArray))
+                if currentClass in vehicle_counts.keys() and conf > confidence_threshold:
                     currentArray = np.array([x1, y1, x2, y2, conf])
                     detections = np.vstack((detections, currentArray))
 
@@ -100,18 +135,40 @@ if uploaded_file is not None:
             cx, cy = x1 + w // 2, y1 + h // 2
 
             # Display detection and ID
-            cvzone.cornerRect(img, (x1, y1, w, h), l=9, rt=2, colorR=(255, 0, 255))
+            cvzone.cornerRect(img, (x1, y1, w, h), l=9, rt=2, colorR=(255, 255, 255))
             cvzone.putTextRect(img, f' {int(id)}', (max(0,x1), max(35,y1)),
-                               scale=2, thickness=3)
+                               scale=1, thickness=2, colorR=(0, 0, 0))
 
             # Count vehicle if it crosses the line
             if limits[0] < cx < limits[2] and limits[1] - 15 < cy < limits[1] + 15:
                 if totalCount.count(id) == 0:
                     totalCount.append(id)
-                    cv2.line(img,(limits[0], limits[1]), (limits[2], limits[3]), (0 ,255 ,0),5)
+                    
+                    color = (0, 255, 0)  # Default to green for cars
+                    if currentClass == "truck":
+                        color = (255, 0, 0)  # Blue for trucks
+                    elif currentClass == "motorbike":
+                        color = (0, 255, 255)  # Yellow for motorbikes
+                    elif currentClass == "bus":
+                        color = (255, 255, 0)  # Cyan for buses
+                    elif currentClass == "person":
+                        color = (255, 0, 255)  # Magenta for persons
+
+                    vehicle_counts[currentClass] += 1
+                    cv2.line(img,(limits[0], limits[1]), (limits[2], limits[3]), color ,5) 
+        
+        # Update vehicle count and logs
+        vehicle_count = len(totalCount)
+        #counter_text.markdown(f"**Total Vehicles Passed:** {vehicle_count}")
+        filtered_vehicle_counts = {k: v for k, v in vehicle_counts.items() if k != "person"}
+
+        vehicle_df = pd.DataFrame.from_dict(filtered_vehicle_counts, orient="index", columns=["Count"])
+        table_text.table(vehicle_df)
+         # Display logs
+        log_text.markdown(f"### Logs\n- **Vehicles Passed:** {vehicle_count}\n- **Last Detected Vehicle ID:** {id if 'id' in locals() else 'N/A'}")   
 
         # Show total count on the frame
-        cv2.putText(img,str(len(totalCount)),(255 ,100),cv2.FONT_HERSHEY_PLAIN ,5,(50 ,50 ,255),8)
+        #cv2.putText(img,str(len(totalCount)),(255 ,100),cv2.FONT_HERSHEY_PLAIN ,5,(50 ,50 ,255),8)
 
         # Update Streamlit frame window with processed image
         frame_window.image(img ,channels="BGR")
