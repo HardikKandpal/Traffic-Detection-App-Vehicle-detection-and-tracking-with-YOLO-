@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Detection App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1, h3 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .video-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .logs {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Traffic Detection App</h1>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <label for="confidence">Confidence Threshold:</label>
+            <input type="number" id="confidence" name="confidence" step="0.1" min="0.0" max="1.0" value="0.3" required>
+
+            <label for="line_method">Line Position Method:</label>
+            <select id="line_method" name="line_method">
+                <option value="slider">Slider</option>
+                <option value="input">Text Input</option>
+            </select>
+
+            <label for="video_file">Upload a Video (MP4):</label>
+            <input type="file" id="video_file" name="video_file" accept=".mp4" required>
+
+            <button type="submit" class="button">Start Processing</button>
+        </form>
+
+        <div class="video-container">
+            <h3>Processed Video:</h3>
+            <video id="processed-video" width="100%" controls>
+                <source src="{{ video_url }}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+
+        <div class="logs">
+            <h3>Logs</h3>
+            <p id="log-info">{{ logs }}</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Vehicle Type</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vehicle, count in vehicle_counts.items() %}
+                <tr>
+                    <td>{{ vehicle }}</td>
+                    <td>{{ count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

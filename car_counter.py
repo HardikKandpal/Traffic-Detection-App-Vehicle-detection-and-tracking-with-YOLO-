@@ -97,5 +97,5 @@ while True:
  
     cv2.imshow("Image", img)
     cv2.waitKey(1)
-    print(f"Image shape: {img.shape}")
-    print(f"Mask shape: {mask.shape}")
+    #print(f"Image shape: {img.shape}")
+    #print(f"Mask shape: {mask.shape}")

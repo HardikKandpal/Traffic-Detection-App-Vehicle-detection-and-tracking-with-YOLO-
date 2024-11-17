@@ -64,25 +64,35 @@ if uploaded_file is not None:
     "person": 0
     }
 
-    
-    x1 = st.sidebar.slider("Line Start X", 0, frame_width, int(frame_width * 0.3))
-    y1 = st.sidebar.slider("Line Start Y", 0, frame_height, int(frame_height * 0.6))
-    x2 = st.sidebar.slider("Line End X", 0, frame_width, int(frame_width * 0.8))
-    y2 = st.sidebar.slider("Line End Y", 0, frame_height, int(frame_height * 0.6))
+    method_choice = st.sidebar.radio("Select Method to Set Scanning Line Position", ("Slider", "Text Input"))
 
-    text_x1 = st.sidebar.text_input("Start X Position (Text Input)", value=str(x1))
-    text_y1 = st.sidebar.text_input("Start Y Position (Text Input)", value=str(y1))
-    text_x2 = st.sidebar.text_input("End X Position (Text Input)", value=str(x2))
-    text_y2 = st.sidebar.text_input("End Y Position (Text Input)", value=str(y2))
+    default_x1, default_y1, default_x2, default_y2 = int(frame_width * 0.3), int(frame_height * 0.6), int(frame_width * 0.8),  int(frame_height * 0.6)
 
-    try:
-        input_x1 = int(text_x1) if 0 <= int(text_x1) <= frame_width else x1
-        input_y1 = int(text_y1) if 0 <= int(text_y1) <= frame_height else y1
-        input_x2 = int(text_x2) if 0 <= int(text_x2) <= frame_width else x2
-        input_y2 = int(text_y2) if 0 <= int(text_y2) <= frame_height else y2
-    except ValueError:
-    # Fall back to slider values if input is invalid
+    if method_choice== "Slider":
+        x1 = st.sidebar.slider("Line Start X", 0, frame_width, default_x1)
+        y1 = st.sidebar.slider("Line Start Y", 0, frame_height, default_y1)
+        x2 = st.sidebar.slider("Line End X", 0, frame_width, default_x2)
+        y2 = st.sidebar.slider("Line End Y", 0, frame_height, default_y2)
+
         input_x1, input_y1, input_x2, input_y2 = x1, y1, x2, y2
+
+    elif method_choice=="Text Input":    
+        text_x1 = st.sidebar.text_input("Start X Position (Text Input)", value=str(default_x1))
+        text_y1 = st.sidebar.text_input("Start Y Position (Text Input)", value=str(default_y1))
+        text_x2 = st.sidebar.text_input("End X Position (Text Input)", value=str(default_x2))
+        text_y2 = st.sidebar.text_input("End Y Position (Text Input)", value=str(default_y2))
+
+        try:
+            line_x1 = int(text_x1) if text_x1.isdigit() and 0 <= int(text_x1) <= frame_width else default_x1
+            line_y1 = int(text_y1) if text_y1.isdigit() and 0 <= int(text_y1) <= frame_height else default_y1
+            line_x2 = int(text_x2) if text_x2.isdigit() and 0 <= int(text_x2) <= frame_width else default_x2
+            line_y2 = int(text_y2) if text_y2.isdigit() and 0 <= int(text_y2) <= frame_height else default_y2
+    
+        except ValueError:
+            line_x1, line_y1, line_x2, line_y2 = default_x1, default_y1, default_x2, default_y2
+        
+        input_x1, input_y1, input_x2, input_y2 = line_x1, line_y1, line_x2, line_y2    
+
     limits = [input_x1, input_y1, input_x2, input_y2]
     #limits = [int(frame_width * 0.3), int(frame_height * 0.6), int(frame_width * 0.8), int(frame_height * 0.6)]
     totalCount = []
@@ -146,14 +156,15 @@ if uploaded_file is not None:
                     
                     color = (0, 255, 0)  # Default to green for cars
                     if currentClass == "truck":
-                        color = (255, 0, 0)  # Blue for trucks
+                        color = (255, 0, 0)  # Red for trucks
                     elif currentClass == "motorbike":
-                        color = (0, 255, 255)  # Yellow for motorbikes
+                        color = (0, 255, 255)  # Cyan for motorbikes
                     elif currentClass == "bus":
-                        color = (255, 255, 0)  # Cyan for buses
+                        color = (255, 255, 0)  # Yelow for buses
                     elif currentClass == "person":
                         color = (255, 0, 255)  # Magenta for persons
-
+                    if currentClass not in vehicle_counts:
+                        vehicle_counts[currentClass] =0
                     vehicle_counts[currentClass] += 1
                     cv2.line(img,(limits[0], limits[1]), (limits[2], limits[3]), color ,5) 
         
