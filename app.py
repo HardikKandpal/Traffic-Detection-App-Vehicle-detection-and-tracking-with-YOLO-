@@ -10,6 +10,25 @@ from ultralytics import YOLO
 # Load YOLO model
 model = YOLO("yolov8l.pt")
 
+
+cumulative_time = {
+    "car": 0,
+    "truck": 0,
+    "bus": 0,
+    "motorbike": 0
+}
+
+vehicle_times = {
+    "car": 5,
+    "truck": 8,
+    "bus": 10,
+    "motorbike": 3
+}
+
+total_Time = 0
+
+traffic_light_status = "green"  # Current traffic light state
+
 # Set class names
 classNames = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat",
               "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
@@ -54,6 +73,7 @@ if uploaded_file is not None:
     frame_window = st.image([])
     counter_text= st.empty()
     log_text= st.empty()
+    log_time= st.empty()
     table_text = st.empty()
 
     vehicle_counts = {
@@ -101,7 +121,7 @@ if uploaded_file is not None:
     # Process each frame and display it
     while cap.isOpened():
         ret, img = cap.read()
-        if not ret:
+        if not ret or traffic_light_status == "red":
             break
         img = cv2.GaussianBlur(img, (5, 5), 0)
         imgRegion = cv2.bitwise_and(img, mask)
@@ -154,6 +174,7 @@ if uploaded_file is not None:
                 if totalCount.count(id) == 0:
                     totalCount.append(id)
                     
+                    
                     color = (0, 255, 0)  # Default to green for cars
                     if currentClass == "truck":
                         color = (255, 0, 0)  # Red for trucks
@@ -163,11 +184,41 @@ if uploaded_file is not None:
                         color = (255, 255, 0)  # Yelow for buses
                     elif currentClass == "person":
                         color = (255, 0, 255)  # Magenta for persons
+                    
                     if currentClass not in vehicle_counts:
                         vehicle_counts[currentClass] =0
+                    
+                    if currentClass in vehicle_times:
+                        total_Time += vehicle_times[currentClass]
+                    
                     vehicle_counts[currentClass] += 1
                     cv2.line(img,(limits[0], limits[1]), (limits[2], limits[3]), color ,5) 
+
+                    if currentClass not in vehicle_counts:
+                        vehicle_counts[currentClass]=0
+                    vehicle_counts[currentClass]+= 1
+
+                    #print(f"Total Time: {total_Time}")  
+                    #st.text(f"Debug: Total Time = {total_Time}")
+
+    
+    
+        # Display traffic light status
+        if total_Time >= 40 and total_Time < 45:
+            traffic_light_status = "yellow"
+            cv2.circle(img, (50, 50), 20, (0, 255, 255), -1)  # Yellow circle
+        elif total_Time >= 45:
+            traffic_light_status = "red"
+            cv2.circle(img, (50, 50), 20, (0, 0, 255), -1)  # Red circle
+            #cap.release()
+            #break
+        else:
+            traffic_light_status = "green"
+            cv2.circle(img, (50, 50), 20, (0, 255, 0), -1)  # Green circle
         
+        
+        cv2.putText(img, f"Total Time: {total_Time}s", (80, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
         # Update vehicle count and logs
         vehicle_count = len(totalCount)
         #counter_text.markdown(f"**Total Vehicles Passed:** {vehicle_count}")
@@ -177,7 +228,10 @@ if uploaded_file is not None:
         table_text.table(vehicle_df)
          # Display logs
         log_text.markdown(f"### Logs\n- **Vehicles Passed:** {vehicle_count}\n- **Last Detected Vehicle ID:** {id if 'id' in locals() else 'N/A'}")   
-
+        
+        log_time.markdown(f"""
+        - **Total Time Accumulated:** {total_Time}s
+        """)
         # Show total count on the frame
         #cv2.putText(img,str(len(totalCount)),(255 ,100),cv2.FONT_HERSHEY_PLAIN ,5,(50 ,50 ,255),8)
 
@@ -185,6 +239,8 @@ if uploaded_file is not None:
         frame_window.image(img ,channels="BGR")
 
     cap.release()
+    if traffic_light_status== "red":
+        st.warning("traffic is at halt")
 else:
     st.warning("Please upload a video file to start processing.")
 
